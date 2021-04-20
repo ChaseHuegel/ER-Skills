@@ -1,5 +1,5 @@
 # ER-Skills
- RPG skills plugin for Minecraft servers
+ RPG skills plugin for 1.16 Minecraft servers
 
 This plugin adds RPG-like skills as well as magic spells to any Paper server. PaperAPI is a hard requirement, no Bukkit or Spigot! There are a number of paperapi specific calls that are used. Feel free to download, compile, modify however you like. This was created for personal use as a hobby project and will be published when it's completed, which I'm 70% of the way there. What remains is fleshing out the skills further and I'm mid-way through a rewrite to clean up prototype code and allow for more user configuration.
 
