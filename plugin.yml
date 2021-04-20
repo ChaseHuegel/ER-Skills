@@ -1,0 +1,49 @@
+name: EternalRealms-Skills
+main: er.seven.skills.Main
+version: 2.0
+api-version: 1.16
+depend: [SimpleGuiApi]
+commands:
+   erskills:
+      description: Get EternalRealms Skills commands.
+      usage: /erskills <help>
+   resetskills:
+      description: Reset your skills to level 1.
+      usage: /resetskills
+   skills:
+      description: View your skills.
+      usage: /skills
+   mining:
+   digging:
+   woodcutting:
+   herbalism:
+   farming:
+   HUSBANDRY:
+   FISHING:
+   BUILDING:
+   CARTOGRAPHY:
+   ACROBATICS:
+   STEALTH:
+   SMITHING:
+   WOODWORKING:
+   INVENTION:
+   TAILORING:
+   COOKING:
+   ALCHEMY:
+   VITALITY:
+   UNARMORED:
+   LIGHT_ARMOR:
+   MEDIUM_ARMOR:
+   HEAVY_ARMOR:
+   UNARMED:
+   LIGHT_WEAPONS:
+   HEAVY_WEAPONS:
+   ARCHERY:
+   ONE_HANDED:
+   DUAL_WIELD:
+   SHIELDS:
+   ENCHANTING:
+   PIETY:
+   BARD:
+   WIZARDRY:
+   WITCHCRAFT:
