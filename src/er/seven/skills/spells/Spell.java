@@ -1,7 +1,5 @@
 package er.seven.skills.spells;
 
-import java.awt.Color;
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
