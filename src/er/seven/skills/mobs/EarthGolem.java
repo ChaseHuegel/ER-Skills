@@ -5,28 +5,29 @@ import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
-public class BrownBear extends Monster
+public class EarthGolem extends Monster
 {	
 	@Override public boolean 	doesDespawn() 		{ return true; }
-	@Override public float 		getSpawnChance() 	{ return 0.3f; }
+	@Override public float 		getSpawnChance() 	{ return 0.5f; }
 	
-	@Override public String 		getName() 			{ return "Brown Bear"; }
-	@Override public EntityType 	getType() 			{ return EntityType.PANDA; }
-	@Override public EntityType 	getReplaceType() 	{ return EntityType.SKELETON; }
+	@Override public String 		getName() 			{ return "Earth Golem"; }
+	@Override public EntityType 	getType() 			{ return EntityType.IRON_GOLEM; }
+	@Override public EntityType 	getReplaceType() 	{ return EntityType.ENDERMAN; }
 	@Override public boolean 		isBaby() 			{ return false; }
 	
-	@Override public int 	getHealth() 			{ return 30; }
+	@Override public int 	getHealth() 			{ return 40; }
 	@Override public int 	getArmor() 				{ return 4; }
 	@Override public int 	getToughness()			{ return 8; }
-	@Override public float 	getKnockbackResist() 	{ return 0.8f; }
+	@Override public float 	getKnockbackResist() 	{ return 0.2f; }
 	@Override public float 	getSpeed() 				{ return 0.25f; }
 	@Override public float 	getDamage() 			{ return 4; }
-	@Override public float 	getKnockback() 			{ return 0.7f; }
+	@Override public float 	getKnockback() 			{ return 0.5f; }
 	
 	@Override public PotionEffect getPotionEffect() { return null; }
 	
@@ -38,14 +39,17 @@ public class BrownBear extends Monster
 	@Override public ItemStack getFeet() 		{ return new ItemStack(Material.AIR); }
 	
 	public List<Biome> validBiomes = Arrays.asList(
-			Biome.BIRCH_FOREST, Biome.DARK_FOREST, Biome.FOREST, Biome.TALL_BIRCH_FOREST, 
-			Biome.WOODED_MOUNTAINS, Biome.TAIGA, Biome.GIANT_TREE_TAIGA, Biome.GIANT_SPRUCE_TAIGA
+			Biome.GRAVELLY_MOUNTAINS, Biome.MOUNTAINS, Biome.MOUNTAIN_EDGE, Biome.MODIFIED_GRAVELLY_MOUNTAINS, Biome.SNOWY_MOUNTAINS,
+			Biome.SNOWY_TAIGA_MOUNTAINS, Biome.TAIGA_MOUNTAINS, Biome.WOODED_MOUNTAINS
 			);
 	
 	@Override
 	public boolean checkSpawnCondition(Location loc)
 	{
-		if (loc.getY() > 60 && validBiomes.contains( loc.getWorld().getBiome(loc.getBlockX(), 0, loc.getBlockZ()) ) == true)
+		if (loc.getWorld().getEnvironment() != Environment.NORMAL)
+			return false;
+		
+		if (loc.getY() < 60 || validBiomes.contains( loc.getWorld().getBiome(loc.getBlockX(), 0, loc.getBlockZ()) ) == true)
 		{
 			return true;
 		}

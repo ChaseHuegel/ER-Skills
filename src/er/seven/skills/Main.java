@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.boss.BossBar;
 import org.bukkit.command.Command;
@@ -16,6 +17,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Strider;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -44,7 +47,9 @@ public class Main extends JavaPlugin
     private static boolean queueSavingMainYaml = false;
     
     public Integer mobCount = 0;
-    public Integer maxMobCount = 60;
+    public Integer maxMobCount = 100;
+    public Integer maxMobCountNether = 50;
+    public Integer maxMobCountEnd = 50;
     
     public YamlConfiguration skillSources = new YamlConfiguration();
     
@@ -79,6 +84,10 @@ public class Main extends JavaPlugin
     public HashMap<Player, BossBar> healthBar = new HashMap<>();
     public HashMap<Player, Integer> healthBarLifetime = new HashMap<>();
     public HashMap<Player, LivingEntity> healthBarTarget = new HashMap<>();
+    
+    public HashMap<Player, Location> lastTeleportLocation = new HashMap<>();
+    
+    public HashMap<Projectile, Spell> spellProjectiles = new HashMap<>();
     
     public HashMap<Player, Integer> combatLevel = new HashMap<>();
     public HashMap<Player, Integer> totalLevel = new HashMap<>();
@@ -193,6 +202,8 @@ public class Main extends JavaPlugin
     	magic.Load();
     	
     	maxMobCount = mainConfig.getInt("Settings.MobCount");
+    	maxMobCountNether = mainConfig.getInt("Settings.MobCountNether");
+    	maxMobCountEnd = mainConfig.getInt("Settings.MobCountEnd");
     }
     
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args)
@@ -218,7 +229,9 @@ public class Main extends JavaPlugin
     		}
     		else if (args[0].equalsIgnoreCase("report") && sender.isOp())
     		{
-    			sender.sendMessage(ChatColor.GREEN + "" + mobCount + " / " + maxMobCount + " mobs");
+    			sender.sendMessage(ChatColor.GREEN + "Overworld: " + RPGMobs.GetMobCount(Bukkit.getWorld("world")) + " / " + maxMobCount + " mobs");
+    			sender.sendMessage(ChatColor.GREEN + "Nether: " + RPGMobs.GetMobCount(Bukkit.getWorld("world_nether")) + " / " + maxMobCountNether + " mobs");
+    			sender.sendMessage(ChatColor.GREEN + "End: " + RPGMobs.GetMobCount(Bukkit.getWorld("world_the_end")) + " / " + maxMobCountEnd + " mobs");
     			
     			return true;
     		}
@@ -346,38 +359,16 @@ public class Main extends JavaPlugin
 				
 				for (World world : worlds)
 				{
-					if (world.getEnvironment() == World.Environment.NORMAL)
+					List<LivingEntity> entities = world.getLivingEntities();
+					
+					//	Entity Tags
+					for (LivingEntity entity : entities)
 					{
-						List<LivingEntity> entities = world.getLivingEntities();
+						Set<String> tags = entity.getScoreboardTags();
 						
-						for (LivingEntity entity : entities)
+						for (String tag : tags)
 						{
-							//	Handle entity effects
-							Set<String> tags = entity.getScoreboardTags();
-							
-							for (String tag : tags)
-							{
-								String[] set = tag.split(":");
-								
-								if (set.length > 1)
-								{
-									//	Bleeding
-									if (set[0].equals("BLEED"))
-									{
-										Integer remainingTime = Integer.parseInt(set[1]);
-										remainingTime -= 1;
-										
-										entity.removeScoreboardTag(tag);
-										
-										if (remainingTime >= 0)
-										{
-											entity.addScoreboardTag("BLEED:" + remainingTime.toString());
-										}
-										
-										entity.damage(1);
-									}
-								}
-							}
+							RPGMobs.ProcessTag(entity, tag);
 						}
 					}
 				}
@@ -438,7 +429,7 @@ public class Main extends JavaPlugin
 		{
 			@Override
 			public void run()
-			{
+			{				
                 for( Player player : Bukkit.getServer().getOnlinePlayers() )
                 {
                 	//  Manage lifetime of health bars
@@ -523,7 +514,9 @@ public class Main extends JavaPlugin
         yml.addDefault("Settings.MaxLevel", 100);
         yml.addDefault("Settings.SaveSecondsInterval", 300);
         yml.addDefault("Settings.RPGMobs", true);
-        yml.addDefault("Settings.MobCount", 60);
+        yml.addDefault("Settings.MobCount", 70);
+        yml.addDefault("Settings.MobCountNether", 30);
+        yml.addDefault("Settings.MobCountEnd", 30);
         
         yml.addDefault("Abilities.ReadySeconds", 4);
         yml.addDefault("Abilities.CooldownFactor", 1.8f);

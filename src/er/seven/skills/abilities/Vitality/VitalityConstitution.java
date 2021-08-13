@@ -22,9 +22,10 @@ public class VitalityConstitution extends Ability
 	@Override
 	public String getDescription(Player player) 
 	{ 
-		return "You have " + ChatColor.GOLD + (int)(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue()) + 
+		double maxHealth = Main.mainConfig.getInt("Vitality.BaseHealth") + ( (Skill.VITALITY.getLevel(player) * Main.mainConfig.getInt("Vitality.HealthBonus")) / 100 );
+		return "You have " + ChatColor.GOLD + (int)(maxHealth) + 
 				ChatColor.GRAY + " health (" + 
-				ChatColor.GOLD + (int)(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() * 0.5f) + 
+				ChatColor.GOLD + (int)(maxHealth) + 
 				ChatColor.GRAY + " hearts)";
 	}
 	
@@ -33,6 +34,7 @@ public class VitalityConstitution extends Ability
 	{
 		yml.addDefault("Vitality.BaseHealth", 20);
 		yml.addDefault("Vitality.HealthBonus", 40);
+		yml.addDefault("Vitality.EnableHealthScale", false);
 	}
 	
 	@Override

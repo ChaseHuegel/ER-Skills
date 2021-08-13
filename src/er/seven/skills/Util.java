@@ -21,6 +21,7 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BossBar;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -30,6 +31,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockIterator;
 
+import er.seven.skills.mobs.Monster;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 
@@ -73,6 +75,21 @@ public class Util
 		
 		return null;
 	}
+	
+	public static String randomString(String... candidates) 
+	{
+		return candidates[new Random().nextInt(candidates.length)];
+	}
+	
+	public static Monster randomMonster(Random rand, Monster... candidates) 
+	{
+		return candidates[rand.nextInt(candidates.length)];
+	}
+	
+	public static EntityType randomEntity(Random rand, EntityType... candidates) 
+	{
+		return candidates[rand.nextInt(candidates.length)];
+	}
 
 	public static Integer randomRange(Integer min, Integer max)
 	{
@@ -81,7 +98,7 @@ public class Util
 	
 	public static Material randMaterial(Random rand, Material... candidates) 
 	{
-			return candidates[rand.nextInt(candidates.length)];
+		return candidates[rand.nextInt(candidates.length)];
 	}
 		  
 	public static Material randMaterial(Material... candidates) 

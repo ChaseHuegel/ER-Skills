@@ -10,8 +10,10 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Lectern;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
@@ -41,6 +43,8 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityTameEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -64,11 +68,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
 
 import com.aim.coltonjgriswold.sga.api.SimpleGui;
 import com.codingforcookies.armorequip.ArmorEquipEvent;
 
+import er.seven.skills.Magic.ScrollType;
 import er.seven.skills.abilities.*;
 import er.seven.skills.abilities.Digging.*;
 import er.seven.skills.abilities.Farming.*;
@@ -78,6 +84,7 @@ import er.seven.skills.abilities.Unarmed.*;
 import er.seven.skills.abilities.Unarmored.*;
 import er.seven.skills.abilities.Vitality.*;
 import er.seven.skills.abilities.Woodcutting.*;
+import er.seven.skills.spells.Spell;
 import er.seven.skills.abilities.OneHanded.*;
 import er.seven.skills.abilities.Archery.*;
 import er.seven.skills.abilities.LightWeapons.*;
@@ -190,15 +197,29 @@ public class SkillsListener  implements Listener
         }
         
         Main.loadPlayerData(player);
-        Util.updateCharacter(player);
+        
+        new BukkitRunnable()
+        {
+            public void run()
+            {
+            	Util.updateCharacter(player);
+            }
+        }.runTaskLater(Main.Instance(), 1);
     }
 	
 	@EventHandler
 	public void onRespawn(PlayerRespawnEvent event)
 	{
 		Player player = event.getPlayer();
-		Util.updateCharacter(player);
 		Util.removeAbilityBuffs(player);
+		
+		new BukkitRunnable()
+        {
+            public void run()
+            {
+            	Util.updateCharacter(player);
+            }
+        }.runTaskLater(Main.Instance(), 1);
 	}
 	
 	@EventHandler
@@ -333,7 +354,14 @@ public class SkillsListener  implements Listener
 			{
 				Player player = (Player)projectile.getShooter();
 				
-				if (attacker.getType() == EntityType.ARROW || attacker.getType() == EntityType.SPECTRAL_ARROW || attacker.getType() == EntityType.TRIDENT)
+				if (Main.Instance().spellProjectiles.get(projectile) != null && victim instanceof LivingEntity)
+				{
+					Magic.TriggerProjectileHit(player, (LivingEntity)victim, projectile, Main.Instance().spellProjectiles.get(projectile));
+					Main.Instance().spellProjectiles.remove(projectile);
+					projectile.remove();
+					event.setCancelled(true);
+				}
+				else if (attacker.getType() == EntityType.ARROW || attacker.getType() == EntityType.SPECTRAL_ARROW || attacker.getType() == EntityType.TRIDENT)
 				{
 					ItemStack mainHand = player.getEquipment().getItemInMainHand();
 					
@@ -626,12 +654,12 @@ public class SkillsListener  implements Listener
         Block block = event.getBlock();
         
         //Cast spells
-  		if (Magic.hasSpellComponentsReady(player))
-  		{
-  			Magic.TryCast(player);
-			event.setCancelled(true);
-			return;
-  		}
+//  		if (Magic.hasSpellComponentsReady(player))
+//  		{
+//  			Magic.TryCast(player);
+//			event.setCancelled(true);
+//			return;
+//  		}
         
         if (placedBlocks.contains(block.getLocation()) == false)
         {
@@ -674,6 +702,27 @@ public class SkillsListener  implements Listener
     }
 	
 	@EventHandler
+	public void onShoot(EntityShootBowEvent event)
+	{
+		if (event.getEntity() instanceof Player)
+		{
+			Player player = (Player)event.getEntity();
+			
+			if (Magic.isCastingTool(player.getInventory().getItemInMainHand()) || Magic.isCastingTool(player.getInventory().getItemInOffHand()))
+			{
+				event.setCancelled(true);
+			}
+			
+			if (Magic.hasSpellComponentsReady(player))
+			{
+				Magic.TryCast(player, event.getForce());
+				return;
+			}
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
+	@EventHandler
     public void onInteract(PlayerInteractEvent event)
     {
 		Player player = event.getPlayer();
@@ -682,15 +731,15 @@ public class SkillsListener  implements Listener
 		Block block = event.getClickedBlock();
 		
 		//Cast spells
-		if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK)
-		{
-			Magic.TryCast(player);
-			if (Magic.hasSpellComponentsReady(player))
-			{
-				event.setCancelled(true);
-				return;
-			}
-		}
+//		if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK)
+//		{
+//			Magic.TryCast(player);
+//			if (Magic.hasSpellComponentsReady(player))
+//			{
+//				event.setCancelled(true);
+//				return;
+//			}
+//		}
 		
 		if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
 		{
@@ -714,6 +763,57 @@ public class SkillsListener  implements Listener
 					if (Util.getWieldSkill(player).readyAbility(player)) { event.setCancelled(true); return; }
 				}
 			}
+			
+			//	Teleport Scrolls
+			if (mainHand.getType() == Material.ENCHANTED_BOOK)
+			{
+				boolean didTeleport = false;
+				
+				if (ChatColor.stripColor(mainHand.getItemMeta().getLore().get(0)).equalsIgnoreCase("Teleport Home I"))
+				{
+					if (player.getBedSpawnLocation() != null)
+					{
+						Main.Instance().lastTeleportLocation.put(player, player.getLocation());
+						player.getWorld().spawnParticle(Particle.REVERSE_PORTAL, player.getLocation(), 60, 1f, 1f, 1f);
+						player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+						player.teleport(player.getBedSpawnLocation());
+						didTeleport = true;
+					}
+					else
+					{
+						player.sendActionBar(ChatColor.RED + "You do not have a valid bed spawn.");
+					}
+				}
+				else if (ChatColor.stripColor(mainHand.getItemMeta().getLore().get(0)).equalsIgnoreCase("Teleport Spawn I"))
+				{
+					Main.Instance().lastTeleportLocation.put(player, player.getLocation());
+					player.getWorld().spawnParticle(Particle.REVERSE_PORTAL, player.getLocation(), 60, 1f, 1f, 1f);
+					player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+					player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+					didTeleport = true;
+				}
+				else if (ChatColor.stripColor(mainHand.getItemMeta().getLore().get(0)).equalsIgnoreCase("Teleport Back I"))
+				{
+					if (Main.Instance().lastTeleportLocation.get(player) != null)
+					{
+						player.getWorld().spawnParticle(Particle.REVERSE_PORTAL, player.getLocation(), 60, 1f, 1f, 1f);
+						player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+						player.teleport(Main.Instance().lastTeleportLocation.get(player));
+						didTeleport = true;
+					}
+					else
+					{
+						player.sendActionBar(ChatColor.RED + "You have not recently teleported anywhere.");
+					}
+				}
+				
+				if (didTeleport)
+				{
+					player.getInventory().setItemInMainHand(null);
+					player.getWorld().spawnParticle(Particle.PORTAL, player.getLocation(), 60, 1f, 1f, 1f);
+					player.getWorld().playSound(player.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, 1f, 1f);
+				}
+			}
 		}
 				
 		if (block != null && (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.LEFT_CLICK_BLOCK))
@@ -722,6 +822,56 @@ public class SkillsListener  implements Listener
 			//	TRIGGER ABLITIES
 			for (int n = 0; n < abilities.length; n++) { abilities[n].onBlockInteract(player, block.getType(), event.getAction(), event); }
 			//////////////////////////////////
+			
+			//	Spell crafting
+			if (block.getType() == Material.LECTERN)
+			{				
+				Lectern lectern = (Lectern)block.getState();
+				
+				if (lectern.getInventory().getItem(0) != null && lectern.getInventory().getItem(0).getType() != Material.AIR)
+				{
+					Spell spell = Main.Instance().magic.TryCraftGetSpell(mainHand.getType());
+					
+					if (!player.getInventory().contains(Material.WRITABLE_BOOK))
+						player.sendActionBar(ChatColor.RED + "You must have a book and quill to craft spells.");
+					else if (spell != null && player.getTotalExperience() - spell.getCastingCost() <= 0)
+						player.sendActionBar(ChatColor.RED + "You do not have enough experience to craft this spell.");
+					else
+					{
+						if (spell != null)
+						{
+							player.getWorld().dropItemNaturally(lectern.getLocation().add(0f, 0.5f, 0f), Magic.CreateSpellTome(spell));
+							mainHand.setAmount( mainHand.getAmount() - 1 );
+							int bookSlot = player.getInventory().first(Material.WRITABLE_BOOK);
+							player.getInventory().getContents()[bookSlot].setAmount( player.getInventory().getContents()[bookSlot].getAmount() - 1 );
+							player.getWorld().playSound(lectern.getLocation(), Sound.ENTITY_EVOKER_PREPARE_WOLOLO, 1f, 1f);
+							player.getWorld().playSound(lectern.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, 1f, 0.25f);
+							
+							player.giveExp( -spell.getCastingCost() );
+
+							event.setCancelled(true);
+						}
+						//	Try scroll crafting
+						else if (mainHand.getType() == Material.ENDER_PEARL || mainHand.getType() == Material.COMPASS || mainHand.getType() == Material.CHORUS_FRUIT)
+						{
+							if (mainHand.getType() == Material.ENDER_PEARL)
+								player.getWorld().dropItemNaturally(lectern.getLocation().add(0f, 0.5f, 0f), Magic.CreateScroll(ScrollType.TELEPORT_HOME));
+							else if (mainHand.getType() == Material.CHORUS_FRUIT)
+								player.getWorld().dropItemNaturally(lectern.getLocation().add(0f, 0.5f, 0f), Magic.CreateScroll(ScrollType.TELEPORT_BACK));
+							else if (mainHand.getType() == Material.COMPASS)
+								player.getWorld().dropItemNaturally(lectern.getLocation().add(0f, 0.5f, 0f), Magic.CreateScroll(ScrollType.TELEPORT_SPAWN));
+							
+							mainHand.setAmount( mainHand.getAmount() - 1 );
+							int bookSlot = player.getInventory().first(Material.WRITABLE_BOOK);
+							player.getInventory().getContents()[bookSlot].setAmount( player.getInventory().getContents()[bookSlot].getAmount() - 1 );
+							player.getWorld().playSound(lectern.getLocation(), Sound.ENTITY_EVOKER_PREPARE_WOLOLO, 1f, 1f);
+							player.getWorld().playSound(lectern.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, 1f, 0.25f);
+							
+							event.setCancelled(true);
+						}
+					}
+				}
+			}
 			
 			if (mainHand.getType() == Material.BOOK && mainHand.getItemMeta().getDisplayName().equalsIgnoreCase("Holy Book")) 
 			{
@@ -962,59 +1112,59 @@ public class SkillsListener  implements Listener
 					}
 				}
 				
-				if (clickedItem.getEnchantments().isEmpty() == false)
-				{
-					if (Util.removeItemFromInventory(player.getInventory(), Material.LAPIS_LAZULI, repairCost) == false)
-					{
-						Util.sendActionbar(player, ChatColor.RED + "Working with enchantments costs lapis lazuli.");
-						((AnvilInventory) inventory).setRepairCost(0);
-						event.setCancelled(true); return;
-					}
-				}
+//				if (clickedItem.getEnchantments().isEmpty() == false)
+//				{
+//					if (Util.removeItemFromInventory(player.getInventory(), Material.LAPIS_LAZULI, repairCost) == false)
+//					{
+//						Util.sendActionbar(player, ChatColor.RED + "Working with enchantments costs lapis lazuli.");
+//						((AnvilInventory) inventory).setRepairCost(0);
+//						event.setCancelled(true); return;
+//					}
+//				}
 				
-				if (player.getLevel() >= repairCost && isMaterialRepair == false)
-				{
-					if (event.isLeftClick() == true && event.isShiftClick() == false)
-					{
-						event.setCursor(clickedItem);
-						inventory.setItem(0, new ItemStack(Material.AIR));
-						inventory.setItem(1, new ItemStack(Material.AIR));
-						inventory.setItem(2, new ItemStack(Material.AIR));
-						player.setLevel(player.getLevel() - repairCost);
-						event.setCancelled(true);
-					}
-					else if (event.isLeftClick() == true && event.isShiftClick() == true)
-					{
-						Integer emptySlot = playerInventory.firstEmpty();
-						if (emptySlot >= 0)
-						{
-							playerInventory.setItem(emptySlot, clickedItem);
-							inventory.setItem(0, new ItemStack(Material.AIR));
-							inventory.setItem(1, new ItemStack(Material.AIR));
-							inventory.setItem(2, new ItemStack(Material.AIR));
-							player.setLevel(player.getLevel() - repairCost);
-							event.setCancelled(true);
-						}
-					}
-					else if (event.getHotbarButton() >= 0)
-					{
-						if (playerInventory.getItem(event.getHotbarButton()) == null)
-						{
-							playerInventory.setItem(event.getHotbarButton(), clickedItem);
-							inventory.setItem(0, new ItemStack(Material.AIR));
-							inventory.setItem(1, new ItemStack(Material.AIR));
-							inventory.setItem(2, new ItemStack(Material.AIR));
-							player.setLevel(player.getLevel() - repairCost);
-							event.setCancelled(true);
-						}
-					}
-					else
-					{
-						event.setCursor(new ItemStack(Material.AIR));
-						player.setLevel(player.getLevel() - repairCost);
-						event.setCancelled(true);
-					}
-				}
+//				if (player.getLevel() >= repairCost && isMaterialRepair == false)
+//				{
+//					if (event.isLeftClick() == true && event.isShiftClick() == false)
+//					{
+//						event.setCursor(clickedItem);
+//						inventory.setItem(0, new ItemStack(Material.AIR));
+//						inventory.setItem(1, new ItemStack(Material.AIR));
+//						inventory.setItem(2, new ItemStack(Material.AIR));
+//						player.setLevel(player.getLevel() - repairCost);
+//						event.setCancelled(true);
+//					}
+//					else if (event.isLeftClick() == true && event.isShiftClick() == true)
+//					{
+//						Integer emptySlot = playerInventory.firstEmpty();
+//						if (emptySlot >= 0)
+//						{
+//							playerInventory.setItem(emptySlot, clickedItem);
+//							inventory.setItem(0, new ItemStack(Material.AIR));
+//							inventory.setItem(1, new ItemStack(Material.AIR));
+//							inventory.setItem(2, new ItemStack(Material.AIR));
+//							player.setLevel(player.getLevel() - repairCost);
+//							event.setCancelled(true);
+//						}
+//					}
+//					else if (event.getHotbarButton() >= 0)
+//					{
+//						if (playerInventory.getItem(event.getHotbarButton()) == null)
+//						{
+//							playerInventory.setItem(event.getHotbarButton(), clickedItem);
+//							inventory.setItem(0, new ItemStack(Material.AIR));
+//							inventory.setItem(1, new ItemStack(Material.AIR));
+//							inventory.setItem(2, new ItemStack(Material.AIR));
+//							player.setLevel(player.getLevel() - repairCost);
+//							event.setCancelled(true);
+//						}
+//					}
+//					else
+//					{
+//						event.setCursor(new ItemStack(Material.AIR));
+//						player.setLevel(player.getLevel() - repairCost);
+//						event.setCancelled(true);
+//					}
+//				}
 				
 				if (baseItem.getType() == Material.ENCHANTED_BOOK || workItem.getType() == Material.ENCHANTED_BOOK)
 				{
@@ -1094,180 +1244,180 @@ public class SkillsListener  implements Listener
         }
     }
 	
-	@EventHandler
-	public void onAnvilPrepare(PrepareAnvilEvent event)
-	{
-		Player player = (Player)event.getView().getPlayer();
-		
-		String renameText = event.getInventory().getRenameText();
-		double cost = event.getInventory().getRepairCost();
-		
-		ItemStack baseItem = event.getView().getItem(0);
-		ItemStack workItem = event.getView().getItem(1);
-		
-		ItemMeta baseItemMeta = baseItem.getItemMeta();
-		ItemMeta workItemMeta = workItem.getItemMeta();
-		
-		ItemStack result = baseItem.clone();
-		ItemMeta resultMeta = result.getItemMeta();
-		
-		org.bukkit.inventory.meta.Damageable baseItemDmg = (org.bukkit.inventory.meta.Damageable)baseItemMeta;
-		
-		//	Display skill bar
-		if (baseItem.getType() != Material.AIR)
-		{
-			if (baseItem.getType() == Material.ENCHANTED_BOOK || workItem.getType() == Material.ENCHANTED_BOOK)
-			{
-				Util.sendSkillBar(player, Skill.ENCHANTING);
-			}
-			else
-			{
-				for (Skill skill : Skill.values())
-		        {
-		        	if (skill != Skill.BUILDING && skill != Skill.LIGHT_ARMOR && skill != Skill.LIGHT_WEAPONS && skill != Skill.HEAVY_WEAPONS && 
-		        			skill != Skill.HEAVY_ARMOR && skill != Skill.MEDIUM_ARMOR && skill != Skill.SHIELDS && skill != Skill.UNARMED && skill != Skill.ARCHERY &&
-		        			skill.checkSource(baseItem.getType().toString()) == true)
-		            {
-		        		Util.sendSkillBar(player, skill);
-		            }
-		        }
-			}
-			
-			if (workItem.getType() != Material.AIR)
-			{
-				if (baseItem.getType() != workItem.getType() && 
-					baseItem.getType() != Material.ENCHANTED_BOOK && 
-					workItem.getType() != Material.ENCHANTED_BOOK) { return; }
-				else if (baseItem.getType() == Material.ENCHANTED_BOOK && 
-						workItem.getType() == Material.ENCHANTED_BOOK) { return; }
-				
-				cost = 1;
-				
-				if (baseItem.getType() != Material.ENCHANTED_BOOK && baseItem.getType().getMaxDurability() == 0)
-				{
-					event.setResult(new ItemStack(Material.AIR));
-					return;
-				}
-				else
-				{
-					//	Clear enchants from the result
-					Map<Enchantment, Integer> baseItemEnchantMap;
-					if (baseItemMeta instanceof EnchantmentStorageMeta) { baseItemEnchantMap = ((EnchantmentStorageMeta)baseItemMeta).getStoredEnchants(); }
-					else { baseItemEnchantMap = baseItemMeta.getEnchants(); }
-					
-					if (baseItemEnchantMap.isEmpty() == false)
-					{
-						for (Map.Entry<Enchantment, Integer> baseEnchantment : baseItemEnchantMap.entrySet())
-						{
-							Enchantment enchant = baseEnchantment.getKey();	
-							if (baseItemMeta instanceof EnchantmentStorageMeta) { ((EnchantmentStorageMeta)resultMeta).removeStoredEnchant(enchant); }
-							else { resultMeta.removeEnchant(enchant); }
-						}
-					}
-				}
-				
-				//	Add repair cost nbt to anvil cost?
-				
-				//	Do repairs
-				if (baseItemDmg.getDamage() > 0)
-				{
-					cost += 2;
-//					double damageReduction = workItem.getType().getMaxDurability() - workItemDmg.getDamage();
-//					double damage = baseItemDmg.getDamage() - damageReduction;
-//					if (damage < 0) { damage = 0; }
-//					Util.setItemDamage(result, (int) damage);
-				}
-				
-				//	Do renaming
-				if (renameText != "")
-				{
-					cost += 1;
-					resultMeta.setDisplayName(renameText);
-					result.setItemMeta(resultMeta);
-				}
-				
-				//	Do enchanting
-				Map<Enchantment, Integer> enchantMap;
-				if (workItemMeta instanceof EnchantmentStorageMeta) { enchantMap = ((EnchantmentStorageMeta)workItemMeta).getStoredEnchants(); }
-				else { enchantMap = workItemMeta.getEnchants(); }
-				
-				if (enchantMap.isEmpty() == false)
-				{
-					Map<Enchantment, Integer> workItemEnchants;
-					if (workItemMeta instanceof EnchantmentStorageMeta) { workItemEnchants = ((EnchantmentStorageMeta)workItemMeta).getStoredEnchants(); }
-					else { workItemEnchants = workItemMeta.getEnchants(); }					
-					
-					for (Map.Entry<Enchantment, Integer> workEnchantment : workItemEnchants.entrySet())
-					{
-						Enchantment workEnchant = workEnchantment.getKey();
-						int workLevel = workEnchantment.getValue();
-						
-						Map<Enchantment, Integer> baseItemEnchants;
-						if (baseItemMeta instanceof EnchantmentStorageMeta) { baseItemEnchants = ((EnchantmentStorageMeta)baseItemMeta).getStoredEnchants(); }
-						else { baseItemEnchants = baseItemMeta.getEnchants(); }	
-						
-						if (baseItemEnchants.isEmpty() == false)
-						{							
-							for (Map.Entry<Enchantment, Integer> baseEnchantment : baseItemEnchants.entrySet())
-							{
-								Enchantment baseEnchant = baseEnchantment.getKey();
-								int baseLevel = baseEnchantment.getValue();
-								
-								if (workEnchant == baseEnchant)
-								{
-									if (workLevel == baseLevel)
-									{
-										if (workLevel < workEnchant.getMaxLevel())
-										{
-											workLevel += 1;
-											//break;
-										}
-									}
-									else if (workLevel < baseLevel)
-									{
-										workLevel = baseLevel;
-										//break;
-									}
-								}
-								else
-								{
-									result.addUnsafeEnchantment(baseEnchant, baseLevel);
-								}
-							}
-						}
-						
-						double multiplier = 1.5f;
-						//	Assign multiplier based on the enchantment
-						cost += workLevel * multiplier;
-						
-						result.addUnsafeEnchantment(workEnchant, workLevel);
-					}			
-				}
-				
-				event.setResult(result);
-			}
-			else
-			{
-//				cost = Math.pow(cost, 1.355);
-				cost *= 2;
-			}
-		}
-		
-		cost = Math.round(cost);
-		if (cost <= 0) { cost = 1; }
-		event.getInventory().setRepairCost( (int)cost );
-		final int anvilCost = (int)cost;
-		
-		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
-		scheduler.scheduleSyncDelayedTask(Main.Instance(), new Runnable() 
-		{
-			@Override
-			public void run()
-			{
-				event.getInventory().setRepairCost( anvilCost );
-			}
-		}, 3);
-	}
+//	@EventHandler
+//	public void onAnvilPrepare(PrepareAnvilEvent event)
+//	{
+//		Player player = (Player)event.getView().getPlayer();
+//		
+//		String renameText = event.getInventory().getRenameText();
+//		double cost = event.getInventory().getRepairCost();
+//		
+//		ItemStack baseItem = event.getView().getItem(0);
+//		ItemStack workItem = event.getView().getItem(1);
+//		
+//		ItemMeta baseItemMeta = baseItem.getItemMeta();
+//		ItemMeta workItemMeta = workItem.getItemMeta();
+//		
+//		ItemStack result = baseItem.clone();
+//		ItemMeta resultMeta = result.getItemMeta();
+//		
+//		org.bukkit.inventory.meta.Damageable baseItemDmg = (org.bukkit.inventory.meta.Damageable)baseItemMeta;
+//		
+//		//	Display skill bar
+//		if (baseItem.getType() != Material.AIR)
+//		{
+//			if (baseItem.getType() == Material.ENCHANTED_BOOK || workItem.getType() == Material.ENCHANTED_BOOK)
+//			{
+//				Util.sendSkillBar(player, Skill.ENCHANTING);
+//			}
+//			else
+//			{
+//				for (Skill skill : Skill.values())
+//		        {
+//		        	if (skill != Skill.BUILDING && skill != Skill.LIGHT_ARMOR && skill != Skill.LIGHT_WEAPONS && skill != Skill.HEAVY_WEAPONS && 
+//		        			skill != Skill.HEAVY_ARMOR && skill != Skill.MEDIUM_ARMOR && skill != Skill.SHIELDS && skill != Skill.UNARMED && skill != Skill.ARCHERY &&
+//		        			skill.checkSource(baseItem.getType().toString()) == true)
+//		            {
+//		        		Util.sendSkillBar(player, skill);
+//		            }
+//		        }
+//			}
+//			
+//			if (workItem.getType() != Material.AIR)
+//			{
+//				if (baseItem.getType() != workItem.getType() && 
+//					baseItem.getType() != Material.ENCHANTED_BOOK && 
+//					workItem.getType() != Material.ENCHANTED_BOOK) { return; }
+//				else if (baseItem.getType() == Material.ENCHANTED_BOOK && 
+//						workItem.getType() == Material.ENCHANTED_BOOK) { return; }
+//				
+//				cost = 1;
+//				
+//				if (baseItem.getType() != Material.ENCHANTED_BOOK && baseItem.getType().getMaxDurability() == 0)
+//				{
+//					event.setResult(new ItemStack(Material.AIR));
+//					return;
+//				}
+//				else
+//				{
+//					//	Clear enchants from the result
+//					Map<Enchantment, Integer> baseItemEnchantMap;
+//					if (baseItemMeta instanceof EnchantmentStorageMeta) { baseItemEnchantMap = ((EnchantmentStorageMeta)baseItemMeta).getStoredEnchants(); }
+//					else { baseItemEnchantMap = baseItemMeta.getEnchants(); }
+//					
+//					if (baseItemEnchantMap.isEmpty() == false)
+//					{
+//						for (Map.Entry<Enchantment, Integer> baseEnchantment : baseItemEnchantMap.entrySet())
+//						{
+//							Enchantment enchant = baseEnchantment.getKey();	
+//							if (baseItemMeta instanceof EnchantmentStorageMeta) { ((EnchantmentStorageMeta)resultMeta).removeStoredEnchant(enchant); }
+//							else { resultMeta.removeEnchant(enchant); }
+//						}
+//					}
+//				}
+//				
+//				//	Add repair cost nbt to anvil cost?
+//				
+//				//	Do repairs
+//				if (baseItemDmg.getDamage() > 0)
+//				{
+//					cost += 2;
+////					double damageReduction = workItem.getType().getMaxDurability() - workItemDmg.getDamage();
+////					double damage = baseItemDmg.getDamage() - damageReduction;
+////					if (damage < 0) { damage = 0; }
+////					Util.setItemDamage(result, (int) damage);
+//				}
+//				
+//				//	Do renaming
+//				if (renameText != "")
+//				{
+//					cost += 1;
+//					resultMeta.setDisplayName(renameText);
+//					result.setItemMeta(resultMeta);
+//				}
+//				
+//				//	Do enchanting
+//				Map<Enchantment, Integer> enchantMap;
+//				if (workItemMeta instanceof EnchantmentStorageMeta) { enchantMap = ((EnchantmentStorageMeta)workItemMeta).getStoredEnchants(); }
+//				else { enchantMap = workItemMeta.getEnchants(); }
+//				
+//				if (enchantMap.isEmpty() == false)
+//				{
+//					Map<Enchantment, Integer> workItemEnchants;
+//					if (workItemMeta instanceof EnchantmentStorageMeta) { workItemEnchants = ((EnchantmentStorageMeta)workItemMeta).getStoredEnchants(); }
+//					else { workItemEnchants = workItemMeta.getEnchants(); }					
+//					
+//					for (Map.Entry<Enchantment, Integer> workEnchantment : workItemEnchants.entrySet())
+//					{
+//						Enchantment workEnchant = workEnchantment.getKey();
+//						int workLevel = workEnchantment.getValue();
+//						
+//						Map<Enchantment, Integer> baseItemEnchants;
+//						if (baseItemMeta instanceof EnchantmentStorageMeta) { baseItemEnchants = ((EnchantmentStorageMeta)baseItemMeta).getStoredEnchants(); }
+//						else { baseItemEnchants = baseItemMeta.getEnchants(); }	
+//						
+//						if (baseItemEnchants.isEmpty() == false)
+//						{							
+//							for (Map.Entry<Enchantment, Integer> baseEnchantment : baseItemEnchants.entrySet())
+//							{
+//								Enchantment baseEnchant = baseEnchantment.getKey();
+//								int baseLevel = baseEnchantment.getValue();
+//								
+//								if (workEnchant == baseEnchant)
+//								{
+//									if (workLevel == baseLevel)
+//									{
+//										if (workLevel < workEnchant.getMaxLevel())
+//										{
+//											workLevel += 1;
+//											//break;
+//										}
+//									}
+//									else if (workLevel < baseLevel)
+//									{
+//										workLevel = baseLevel;
+//										//break;
+//									}
+//								}
+//								else
+//								{
+//									result.addUnsafeEnchantment(baseEnchant, baseLevel);
+//								}
+//							}
+//						}
+//						
+//						double multiplier = 1.5f;
+//						//	Assign multiplier based on the enchantment
+//						cost += workLevel * multiplier;
+//						
+//						result.addUnsafeEnchantment(workEnchant, workLevel);
+//					}			
+//				}
+//				
+//				event.setResult(result);
+//			}
+//			else
+//			{
+////				cost = Math.pow(cost, 1.355);
+//				cost *= 2;
+//			}
+//		}
+//		
+//		cost = Math.round(cost);
+//		if (cost <= 0) { cost = 1; }
+//		event.getInventory().setRepairCost( (int)cost );
+//		final int anvilCost = (int)cost;
+//		
+//		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
+//		scheduler.scheduleSyncDelayedTask(Main.Instance(), new Runnable() 
+//		{
+//			@Override
+//			public void run()
+//			{
+//				event.getInventory().setRepairCost( anvilCost );
+//			}
+//		}, 3);
+//	}
 	
 	@EventHandler
     public void onEnchant(EnchantItemEvent event)
@@ -1283,17 +1433,17 @@ public class SkillsListener  implements Listener
 		Util.giveXP(player, Skill.ENCHANTING, reward);
     }
 	
-	@EventHandler
-    public void onPrepareEnchant(PrepareItemEnchantEvent event)
-    {
-		EnchantmentOffer[] offers = event.getOffers();
-		
-		for (EnchantmentOffer offer : offers)
-		{
-//			offer.setCost( (int) Math.round( Math.pow(offer.getCost(), 1.355) ) );
-			offer.setCost( offer.getCost() * 2 );
-		}
-    }
+//	@EventHandler
+//    public void onPrepareEnchant(PrepareItemEnchantEvent event)
+//    {
+//		EnchantmentOffer[] offers = event.getOffers();
+//		
+//		for (EnchantmentOffer offer : offers)
+//		{
+////			offer.setCost( (int) Math.round( Math.pow(offer.getCost(), 1.355) ) );
+//			offer.setCost( offer.getCost() * 2 );
+//		}
+//    }
 	
 	@EventHandler
     public void onClickEntity(PlayerInteractEntityEvent event)
@@ -1422,6 +1572,9 @@ public class SkillsListener  implements Listener
 		if (entity instanceof Player)
 		{
 			Player player = (Player)entity;
+			
+			if (event.getRegainReason() == RegainReason.SATIATED && player.getHealth() >= player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue()/2d)
+				event.setAmount(0d);
 			
 			//////////////////////////////////
 			//	TRIGGER ABLITIES

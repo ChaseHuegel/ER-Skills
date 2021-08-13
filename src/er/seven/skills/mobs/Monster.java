@@ -71,6 +71,8 @@ public class Monster
 		mob.getAttribute(Attribute.GENERIC_ARMOR_TOUGHNESS).setBaseValue( getToughness() );
 		mob.getAttribute(Attribute.GENERIC_KNOCKBACK_RESISTANCE).setBaseValue( getKnockbackResist() );
 		mob.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue( getSpeed() );
+		mob.registerAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+		mob.registerAttribute(Attribute.GENERIC_ATTACK_KNOCKBACK);
 		mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue( getDamage() );
 		mob.getAttribute(Attribute.GENERIC_ATTACK_KNOCKBACK).setBaseValue( getKnockback() );
 		

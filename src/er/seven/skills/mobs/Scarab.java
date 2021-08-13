@@ -10,14 +10,14 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
-public class Rat extends Monster
+public class Scarab extends Monster
 {	
 	@Override public boolean 	doesDespawn() 		{ return true; }
-	@Override public float 		getSpawnChance() 	{ return 0.2f; }
+	@Override public float 		getSpawnChance() 	{ return 0.25f; }
 	
-	@Override public String 		getName() 			{ return "Rat"; }
+	@Override public String 		getName() 			{ return "Scarab"; }
 	@Override public EntityType 	getType() 			{ return EntityType.SILVERFISH; }
-	@Override public EntityType 	getReplaceType() 	{ return EntityType.ZOMBIE; }
+	@Override public EntityType 	getReplaceType() 	{ return EntityType.SKELETON; }
 	@Override public boolean 		isBaby() 			{ return false; }
 	
 	@Override public int 	getHealth() 			{ return 4; }
@@ -38,7 +38,7 @@ public class Rat extends Monster
 	@Override public ItemStack getFeet() 		{ return new ItemStack(Material.AIR); }
 	
 	public List<Biome> validBiomes = Arrays.asList(
-			Biome.PLAINS, Biome.SWAMP, Biome.SWAMP_HILLS
+			Biome.DESERT, Biome.DESERT_HILLS, Biome.DESERT_LAKES
 			);
 	
 	@Override

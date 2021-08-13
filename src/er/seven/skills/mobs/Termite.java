@@ -10,12 +10,12 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
-public class Rat extends Monster
+public class Termite extends Monster
 {	
 	@Override public boolean 	doesDespawn() 		{ return true; }
-	@Override public float 		getSpawnChance() 	{ return 0.2f; }
+	@Override public float 		getSpawnChance() 	{ return 0.15f; }
 	
-	@Override public String 		getName() 			{ return "Rat"; }
+	@Override public String 		getName() 			{ return "Termite"; }
 	@Override public EntityType 	getType() 			{ return EntityType.SILVERFISH; }
 	@Override public EntityType 	getReplaceType() 	{ return EntityType.ZOMBIE; }
 	@Override public boolean 		isBaby() 			{ return false; }
@@ -38,7 +38,7 @@ public class Rat extends Monster
 	@Override public ItemStack getFeet() 		{ return new ItemStack(Material.AIR); }
 	
 	public List<Biome> validBiomes = Arrays.asList(
-			Biome.PLAINS, Biome.SWAMP, Biome.SWAMP_HILLS
+			Biome.BADLANDS, Biome.SAVANNA, Biome.DESERT, Biome.BADLANDS_PLATEAU, Biome.WOODED_BADLANDS_PLATEAU
 			);
 	
 	@Override

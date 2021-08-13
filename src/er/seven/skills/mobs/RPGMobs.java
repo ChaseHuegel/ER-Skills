@@ -1,62 +1,145 @@
 package er.seven.skills.mobs;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Strider;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.StriderTemperatureChangeEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+import com.aim.coltonjgriswold.sga.api.SimpleGui;
+import com.codingforcookies.armorequip.DispenserArmorListener;
 
 import er.seven.skills.Main;
 import er.seven.skills.Skill;
+import er.seven.skills.Util;
+import er.seven.skills.mobs.extras.*;
 import net.md_5.bungee.api.ChatColor;
 
-public class RPGMobs  implements Listener
+public class RPGMobs implements Listener
 {
+	Random random = new Random();
+	
 	List<Monster> customMobs = Arrays.asList(
 			//	End mobs
 			new EnderPhantom(),
 			new Shulkman(),
+//			new Crawler(),
 			
 			//	Ghosts
 			new LostSoul(),
 			new PossessedObject(),
 			new Haunt(),
 			new Spirit(),
+			new Wraith(),
+			new Fury(),
+//			new Remnant(),
+			
+			//	Giantkind
+			new Troll(),
+			new Yeti(),
+			new EarthGolem(),
+			
+			//	Human
+			new Bandit(),
+			new BanditArcher(),
 			
 			//	Goblins
 			new Goblin(),
+			
+			//	Orcs
+			new Orc(),
 			
 			//	Pigmen
 			new Pigman(),
 			new PigmanWarrior(),
 			new PigmanHunter(),
 			
+			//	Beastmen
+			new Beastman(),
+			new BeastmanWarrior(),
+			
 			//	Animals
 			new Rat(),
-			new WildWolf(),
+			new Termite(),
+//			new Scarab(),
+//			new WildWolf(),
 			new BrownBear(),
 			new BlackBear(),
+			new GrizzlyBear(),
 			new Warthog(),
+//			new Scorpion(),
+//			new Crab(),
+			new Taurus(),
+			new Tick(),
+//			new Vulture(),
+//			new Eagle(),
+//			new Owl(),
+//			new Ape(),
+			
+			//	Critters
+			new Raccoon(),
+//			new Crow(),
+//			new Pigeon(),
+//			new Hawk(),
+			new Monkey(),
+			new Frog(),
+//			new GlowFly(),
+//			new UmberFly(),
+//			new Giraffe(),
+			new OwlBeast(),
 			
 			//	Skeletons
 			new Barebones(),
 			new Rattlebones(),
+//			new Forgotten(),
+//			new Sunken(),
+//			new Unearthed(),
 			new SkeletonArcher(),
 			new SkeletonWarrior(),
 			new SkeletonKnight(),
+			new SkeletonMage(),
 			new CursedSkeleton(),
+//			new EnchantedArcher(),
+//			new EnchantedKnight(),
+//			new EnchantedWarrior(),
+			
+			//	Horrors
+			new Skinbag(),
+			new Watcher(),
+			new Eyeball(),
+//			new BrainBlob(),
+			new Mimic(),
+//			new Lurker(),
 			
 			//	Zombies
 			new Undead(),
@@ -65,17 +148,18 @@ public class RPGMobs  implements Listener
 			new UndeadKnight()
 			);
 	
-	List<SpawnReason> validSpawnReasons = Arrays.asList( 
-			SpawnReason.NATURAL,
-			SpawnReason.SPAWNER,
-			SpawnReason.SPAWNER_EGG,
-			SpawnReason.NETHER_PORTAL,
-			SpawnReason.PATROL,
-			SpawnReason.RAID,
-			SpawnReason.REINFORCEMENTS,
-			SpawnReason.SILVERFISH_BLOCK );
+	public static List<SpawnReason> validSpawnReasons = Arrays.asList( 
+			SpawnReason.NATURAL
+			);
+//			SpawnReason.SPAWNER,
+//			SpawnReason.SPAWNER_EGG,
+//			SpawnReason.NETHER_PORTAL,
+//			SpawnReason.PATROL,
+//			SpawnReason.RAID,
+//			SpawnReason.REINFORCEMENTS,
+//			SpawnReason.SILVERFISH_BLOCK );
 	
-	List<EntityType> validMobs = Arrays.asList( 
+	public static List<EntityType> validMobs = Arrays.asList( 
 			EntityType.SKELETON,
 			EntityType.ZOMBIE,
 			EntityType.PIGLIN,
@@ -89,14 +173,9 @@ public class RPGMobs  implements Listener
 			EntityType.BLAZE,
 			EntityType.HUSK,
 			EntityType.DROWNED,
-			EntityType.PILLAGER,
-			EntityType.VINDICATOR,
 			EntityType.VEX,
 			EntityType.PHANTOM,
-			EntityType.SLIME,
-			EntityType.WITCH,
 			EntityType.WITHER_SKELETON,
-			EntityType.RAVAGER,
 			EntityType.GHAST,
 			EntityType.GUARDIAN,
 			EntityType.EVOKER,
@@ -106,23 +185,41 @@ public class RPGMobs  implements Listener
 			EntityType.ENDERMITE,
 			EntityType.SILVERFISH,
 			EntityType.WITHER,
-			EntityType.ENDER_DRAGON );
+			EntityType.ENDER_DRAGON,
+			EntityType.BAT );
 	
-	public Integer GetMobCount(World world)
+	public HashMap<EntityType, List<Monster>> mobMapping = new HashMap<>();
+	
+	public RPGMobs()
 	{
-//		List<World> worlds = Main.Instance().getServer().getWorlds();
-		Integer count = 0;
+		for (int i = 0; i < customMobs.size(); i++)
+		{
+			if (mobMapping.get(customMobs.get(i).getReplaceType()) == null)
+				mobMapping.put(customMobs.get(i).getReplaceType(), new ArrayList<Monster>());
+			
+			mobMapping.get(customMobs.get(i).getReplaceType()).add(customMobs.get(i));
+		}
 		
-//		for (World world : worlds)
-//		{
-//			for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class))
-//			{
-//				if (validMobs.contains(entity.getType()))
-//				{
-//					count++;
-//				}
-//			}
-//		}
+		//	Register mob enhancements
+		Main.Instance().getServer().getPluginManager().registerEvents(new Striders(), Main.Instance());
+		Main.Instance().getServer().getPluginManager().registerEvents(new Pigs(), Main.Instance());
+	}
+	
+	public static Integer GetMobCap(World world)
+	{
+		if (world.getEnvironment() == Environment.NORMAL)
+			return (int) (Main.Instance().maxMobCount + (Main.Instance().maxMobCount * 0.25f * world.getPlayerCount()));
+		else if (world.getEnvironment() == Environment.NETHER)
+			return (int) (Main.Instance().maxMobCountNether + (Main.Instance().maxMobCountNether * 0.25f * world.getPlayerCount()));
+		if (world.getEnvironment() == Environment.THE_END)
+			return (int) (Main.Instance().maxMobCountEnd + (Main.Instance().maxMobCountEnd * 0.25f * world.getPlayerCount()));
+		
+		return 0;
+	}
+	
+	public static Integer GetMobCount(World world)
+	{
+		Integer count = 0;
 		
 		for (Mob entity : world.getEntitiesByClass(Mob.class))
 		{
@@ -136,6 +233,30 @@ public class RPGMobs  implements Listener
 		return count;
 	}
 	
+	public static void ProcessTag(LivingEntity entity, String tag)
+	{
+		String[] set = tag.split(":");
+		
+		if (set.length > 1)
+		{
+			//	Bleeding
+			if (set[0].equals("BLEED"))
+			{
+				Integer remainingTime = Integer.parseInt(set[1]);
+				remainingTime -= 1;
+				
+				entity.removeScoreboardTag(tag);
+				
+				if (remainingTime >= 0)
+				{
+					entity.addScoreboardTag("BLEED:" + remainingTime.toString());
+				}
+				
+				entity.damage(1);
+			}
+		}
+	}
+	
 	@EventHandler
 	public void onEntityTarget(EntityTargetEvent event)
 	{
@@ -146,7 +267,10 @@ public class RPGMobs  implements Listener
 				(event.getEntity().getLastDamageCause().getCause() != DamageCause.ENTITY_ATTACK && 
 				event.getEntity().getLastDamageCause().getCause() != DamageCause.ENTITY_SWEEP_ATTACK))
 			{
-				event.setCancelled(true);
+				if (event.getEntityType() == EntityType.PIGLIN && event.getEntity().getCustomName() != null && event.getEntity().getCustomName().contains("Pigman"))
+					event.setCancelled(true);
+				else if (event.getEntityType() == EntityType.HOGLIN)
+					event.setCancelled(true);
 			}
 		}
 	}
@@ -166,10 +290,37 @@ public class RPGMobs  implements Listener
 		}
 	}
 	
+	@EventHandler
+	public void onEntityExplode(EntityExplodeEvent event)
+	{
+		if (event.getEntityType() == EntityType.CREEPER)
+		{
+			AreaEffectCloud cloud = (AreaEffectCloud)event.getEntity().getWorld().spawnEntity(event.getEntity().getLocation(), EntityType.AREA_EFFECT_CLOUD);
+			PotionEffect effect = new PotionEffect(PotionEffectType.POISON, 220, 0);
+			cloud.addCustomEffect(effect, false);
+			cloud.setDuration(600);
+			cloud.setRadius(3f);
+			cloud.setRadiusPerTick(0.005f);
+		}
+	}
+	
 	@EventHandler(priority = EventPriority.HIGH)
 	public void onMobSpawn(CreatureSpawnEvent event)
 	{		
 		if (validMobs.contains(event.getEntity().getType()) == false) return;
+		
+		if (event.getLocation().getWorld().getEnvironment() == Environment.NORMAL && event.getLocation().getBlock().getRelative(0, -1, 0).getLightFromBlocks() > 0)
+		{
+			event.setCancelled(true);
+			return;
+		}
+		
+		if (event.getLocation().getWorld().getEnvironment() == Environment.NORMAL && GetMobCount(event.getLocation().getWorld()) >= Main.Instance().maxMobCount * event.getLocation().getWorld().getPlayerCount())
+		{ event.setCancelled(true); return; }
+		else if (event.getLocation().getWorld().getEnvironment() == Environment.NETHER && GetMobCount(event.getLocation().getWorld()) >= Main.Instance().maxMobCountNether * event.getLocation().getWorld().getPlayerCount())
+			{ event.setCancelled(true); return; }
+		else if (event.getLocation().getWorld().getEnvironment() == Environment.THE_END && GetMobCount(event.getLocation().getWorld()) >= Main.Instance().maxMobCountEnd * event.getLocation().getWorld().getPlayerCount())
+			{ event.setCancelled(true); return; }
 		
 		LivingEntity entity = event.getEntity();
 		if ( !(entity instanceof Mob) ) return;
@@ -178,21 +329,42 @@ public class RPGMobs  implements Listener
 		if (validSpawnReasons.contains(event.getSpawnReason()) == false) { return; }
 		boolean canSpawn = false;
 		
-		if (GetMobCount(event.getLocation().getWorld()) >= Main.Instance().maxMobCount) { event.setCancelled(true); return; }
-		
-		for (int i = 0; i < customMobs.size(); i++)
+		if (mobMapping.get(event.getEntity().getType()) != null)
 		{
-			if (customMobs.get(i).getReplaceType() == event.getEntityType() && 
-				Math.random() <= customMobs.get(i).getSpawnChance() &&
-				customMobs.get(i).checkSpawnCondition(event.getLocation()) == true)
+			List<Monster> validMonsters = new ArrayList<Monster>();
+			Monster monster = null;
+			
+			for (int n = 0; n < mobMapping.get(event.getEntity().getType()).size(); n++)
 			{
+				monster = mobMapping.get(event.getEntity().getType()).get(n);
+				
+				if (Math.random() <= monster.getSpawnChance() && monster.checkSpawnCondition(event.getLocation()) == true)
+					validMonsters.add(monster);
+			}
+			
+			if (validMonsters.size() > 1)
+			{
+				monster = Util.randomMonster(random, validMonsters.toArray(new Monster[0]));
+	
 				entity.remove();
-				mob = customMobs.get(i).spawn(event.getLocation());
+				mob = monster.spawn(event.getLocation());
 				canSpawn = true;
-				break;
 			}
 		}
 		
+//		for (int i = 0; i < customMobs.size(); i++)
+//		{
+//			if (customMobs.get(i).getReplaceType() == event.getEntityType() && 
+//				Math.random() <= customMobs.get(i).getSpawnChance() &&
+//				customMobs.get(i).checkSpawnCondition(event.getLocation()) == true)
+//			{
+//				entity.remove();
+//				mob = customMobs.get(i).spawn(event.getLocation());
+//				canSpawn = true;
+//				break;
+//			}
+//		}
+//		
 		if (canSpawn == false) canSpawn = validMobs.contains(entity.getType());
 		
 		if (canSpawn)

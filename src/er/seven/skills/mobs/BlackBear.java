@@ -17,7 +17,7 @@ public class BlackBear extends Monster
 	
 	@Override public String 		getName() 			{ return "Black Bear"; }
 	@Override public EntityType 	getType() 			{ return EntityType.POLAR_BEAR; }
-	@Override public EntityType 	getReplaceType() 	{ return EntityType.SPIDER; }
+	@Override public EntityType 	getReplaceType() 	{ return EntityType.ZOMBIE; }
 	@Override public boolean 		isBaby() 			{ return false; }
 	
 	@Override public int 	getHealth() 			{ return 25; }

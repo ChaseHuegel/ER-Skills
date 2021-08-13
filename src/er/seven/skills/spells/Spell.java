@@ -78,6 +78,7 @@ public class Spell
 	public Integer spellLevel = 1;
 	public String name = "";
 	public Skill skill = Skill.WIZARDRY;
+	public Material component = Material.AIR;
 	public Integer castingCost = 0;
 	public boolean damageScales = true;
 	public boolean damages = true;
@@ -93,9 +94,13 @@ public class Spell
 	public Sound hitSound = Sound.ENTITY_ITEM_BREAK;
 	public Particle hitParticle = Particle.SPELL;
 	public Integer hitParticleCount = 20;
+	public String specialEffect = "";
 	
 	public boolean isTargeted() 	{ return targeted; }
 	public Integer getSpellLevel()	{ return spellLevel; }
+	
+	public boolean canCraft() { return component != Material.AIR; }
+	public Material getCraftComponent() { return component; }
 	
 	public String getName() { return name; }	
 	public Skill getSkill() { return skill; }

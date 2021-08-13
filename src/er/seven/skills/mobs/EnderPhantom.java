@@ -19,7 +19,7 @@ import er.seven.skills.Main;
 public class EnderPhantom extends Monster
 {	
 	@Override public boolean 	doesDespawn() 		{ return true; }
-	@Override public float 		getSpawnChance() 	{ return 0.35f; }
+	@Override public float 		getSpawnChance() 	{ return 0.25f; }
 	
 	@Override public String 		getName() 			{ return "Ender Phantom"; }
 	@Override public EntityType 	getType() 			{ return EntityType.PHANTOM; }
